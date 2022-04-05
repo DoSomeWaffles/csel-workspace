@@ -1,0 +1,1 @@
+cmd_/workspace/src/pilotes/ex2_character_based_driver/Module.symvers := sed 's/\.ko$$/\.o/' /workspace/src/pilotes/ex2_character_based_driver/modules.order | scripts/mod/modpost    -o /workspace/src/pilotes/ex2_character_based_driver/Module.symvers -e -i Module.symvers   -T -

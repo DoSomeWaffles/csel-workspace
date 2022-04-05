@@ -1,0 +1,1 @@
+cmd_/workspace/src/kernel-module/mymodule.ko := /buildroot/output/host/usr/bin/aarch64-buildroot-linux-gnu-ld -r -EL  -maarch64elf --build-id=sha1  -T scripts/module.lds -o /workspace/src/kernel-module/mymodule.ko /workspace/src/kernel-module/mymodule.o /workspace/src/kernel-module/mymodule.mod.o;  true
