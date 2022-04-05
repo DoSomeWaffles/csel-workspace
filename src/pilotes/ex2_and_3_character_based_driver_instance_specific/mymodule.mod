@@ -1,0 +1,2 @@
+/workspace/src/pilotes/ex2_and_3_character_based_driver_instance_specific/skeleton.o
+
