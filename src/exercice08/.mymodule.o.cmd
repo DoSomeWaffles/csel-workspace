@@ -1,0 +1,1 @@
+cmd_/workspace/src/exercice08/mymodule.o := /buildroot/output/host/usr/bin/aarch64-buildroot-linux-gnu-ld -EL  -maarch64elf   -r -o /workspace/src/exercice08/mymodule.o /workspace/src/exercice08/skeleton.o

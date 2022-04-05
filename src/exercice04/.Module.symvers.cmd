@@ -1,0 +1,1 @@
+cmd_/workspace/src/exercice04/Module.symvers := sed 's/\.ko$$/\.o/' /workspace/src/exercice04/modules.order | scripts/mod/modpost    -o /workspace/src/exercice04/Module.symvers -e -i Module.symvers   -T -
