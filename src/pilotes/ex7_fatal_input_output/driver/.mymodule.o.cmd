@@ -1,0 +1,1 @@
+cmd_/workspace/src/pilotes/ex7_fatal_input_output/driver/mymodule.o := /buildroot/output/host/usr/bin/aarch64-buildroot-linux-gnu-ld -EL  -maarch64elf   -r -o /workspace/src/pilotes/ex7_fatal_input_output/driver/mymodule.o /workspace/src/pilotes/ex7_fatal_input_output/driver/skeleton.o
