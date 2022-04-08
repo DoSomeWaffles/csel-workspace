@@ -1,1 +1,0 @@
-cmd_/workspace/src/pilotes/ex2_and_3_character_based_driver_instance_specific/modules.order := {   echo /workspace/src/pilotes/ex2_and_3_character_based_driver_instance_specific/mymodule.ko; :; } | awk '!x[$$0]++' - > /workspace/src/pilotes/ex2_and_3_character_based_driver_instance_specific/modules.order
