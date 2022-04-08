@@ -6,37 +6,24 @@
 
 static const char* text =
     "\n"
-    "bonjour le monde\n"
-    "ce mois d'octobre est plutot humide...\n"
-    "ce n'est qu'un petit texte de test...\n";
-
-static const char* text2 =
-    "\n"
-    "et voici un complement au premier text..\n"
-    "ce n'est qu'un deuxieme petit texte de test...\n";
-
-static const char* blabla =
-    "blabla blabla blabla blabla blabla blabla blbla\n";
+    "test\n";
 
 int main(int argc, char* argv[])
 {
-    if (argc <= 1) return 0;
-
+    if (argc <= 2) {
+        printf("Not enough arguments\n");
+        return 0;
+    }
     int fdw = open(argv[1], O_RDWR);
     printf("%d\n", fdw);
     write(fdw, argv[1], strlen(argv[1]));
+    write(fdw, argv[2], strlen(argv[2]));
     write(fdw, text, strlen(text));
-    write(fdw, text2, strlen(text2));
-
-    int s;
-    do {
-        s = write(fdw, blabla, strlen(blabla));
-    } while (s >= 0);
     close(fdw);
 
     int fdr = open(argv[1], O_RDONLY);
     while (1) {
-        char buff[100];
+        char buff[10000];
        
         ssize_t sz = read(fdr, buff, sizeof(buff) - 1);
         printf("%zd\n", sz);

@@ -1,0 +1,1 @@
+cmd_/workspace/src/pilotes/ex7_fatal_input_output/driver/mymodule.mod := { echo  /workspace/src/pilotes/ex7_fatal_input_output/driver/skeleton.o;  echo; } > /workspace/src/pilotes/ex7_fatal_input_output/driver/mymodule.mod

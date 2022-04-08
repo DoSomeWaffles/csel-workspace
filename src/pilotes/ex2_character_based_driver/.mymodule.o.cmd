@@ -1,1 +1,0 @@
-cmd_/workspace/src/pilotes/ex2_character_based_driver/mymodule.o := /buildroot/output/host/usr/bin/aarch64-buildroot-linux-gnu-ld -EL  -maarch64elf   -r -o /workspace/src/pilotes/ex2_character_based_driver/mymodule.o /workspace/src/pilotes/ex2_character_based_driver/skeleton.o
