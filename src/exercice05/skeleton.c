@@ -64,7 +64,7 @@ static int __init skeleton_init(void)
 		chip_id_values[i] = ioread32(reg_start_addr[0] + res.addr_offset[0] +i*sizeof(int));
 	}
 	for(i=0;i<4;i++){
-		pr_info ("val %0x80 ",chip_id_values[i]);
+		pr_info ("chipid = %08x'",chip_id_values[i]);
 	}
 
 	//get cpu_temp
@@ -74,6 +74,7 @@ static int __init skeleton_init(void)
 		mac_addr[i] = ioread32(reg_start_addr[2] + res.addr_offset[2] + i*sizeof(int));
 	}
 	//display mac addr
+
 	for (i = 0; i < res.nb_ressources; i++)
 	{
 		iounmap(reg_start_addr[i]);
