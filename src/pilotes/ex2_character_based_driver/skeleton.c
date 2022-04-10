@@ -40,7 +40,7 @@ static ssize_t skeleton_read(struct file *fp, char *buffer, size_t length, loff_
 {
     int maxbytes;      // maximum bytes that can be read from offset to BUFFER_SIZE
     int bytes_to_read; // gives the number of bytes to read
-    int bytes_read;    // number of bytes actually read
+    int bytes_read;    // number of bytes to read
     maxbytes = BUFFER_SIZE - *offset;
     if (maxbytes > length)
         bytes_to_read = length;
@@ -59,7 +59,7 @@ static ssize_t skeleton_write(struct file *fp, const char *buffer, size_t length
 {
     int maxbytes;       // maximum bytes that can be read from offset to BUFFER_SIZE
     int bytes_to_write; // gives the number of bytes to write
-    int bytes_writen;   // number of bytes actually writen
+    int bytes_writen;   // number of bytes to write
     maxbytes = BUFFER_SIZE - *offset;
     if (maxbytes > length)
         bytes_to_write = length;
@@ -73,8 +73,8 @@ static ssize_t skeleton_write(struct file *fp, const char *buffer, size_t length
 }
 
 struct file_operations fops = {
-    //these are the file operations provided by our driver 
-    .owner = THIS_MODULE,      //prevents unloading when operations are in use
+    // file operations provided by the driver 
+    .owner = THIS_MODULE,      //to prevent unloading when operations are in use
     .open = skeleton_open,     //to open the device
     .write = skeleton_write,   //to write to the device
     .read = skeleton_read,     //to read the device
@@ -84,7 +84,6 @@ struct file_operations fops = {
 int skeleton_init(void)
 {
     int ret;
-    //we will get the major number dynamically this is recommended please read ldd3
     ret = alloc_chrdev_region(&dev_num, 0, 1, DEVICENAME);
     if (ret < 0)
     {
@@ -93,8 +92,8 @@ int skeleton_init(void)
     }
     else
         pr_info(" skeleton : major number allocated succesful\n");
-    mcdev = cdev_alloc(); //create, allocate and initialize our cdev structure
-    mcdev->ops = &fops;   //fops stand for our file operations
+    mcdev = cdev_alloc(); //create, allocate and initialize cdev structure
+    mcdev->ops = &fops; 
     mcdev->owner = THIS_MODULE;
     ret = cdev_add(mcdev, dev_num, 1);
     if (ret < 0)
@@ -119,6 +118,9 @@ void skeleton_exit(void)
     pr_info(" skeleton : character driver is exiting\n");
 }
 
+
+MODULE_AUTHOR("Denis Rosset <denis.rosset@hes-so.ch> and Simon Corboz <simon.corboz@hes-so.ch>");
+MODULE_DESCRIPTION("Module skeleton driver for character based devices");
 MODULE_LICENSE("GPL");
 module_init(skeleton_init);
 module_exit(skeleton_exit);
