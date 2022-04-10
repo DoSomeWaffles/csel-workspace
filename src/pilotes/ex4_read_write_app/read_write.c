@@ -4,9 +4,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-static const char* text =
-    "\n"
-    "test\n";
+static const char* text ="text to write test\n";
 
 int main(int argc, char* argv[])
 {
@@ -14,6 +12,7 @@ int main(int argc, char* argv[])
         printf("Not enough arguments\n");
         return 0;
     }
+    // writing to the device
     int fdw = open(argv[1], O_RDWR);
     printf("%d\n", fdw);
     write(fdw, argv[1], strlen(argv[1]));
@@ -21,9 +20,10 @@ int main(int argc, char* argv[])
     write(fdw, text, strlen(text));
     close(fdw);
 
+    // reading the device
     int fdr = open(argv[1], O_RDONLY);
     while (1) {
-        char buff[10000];
+        char buff[10000]; // with a bigger buffer, it seems to go faster
        
         ssize_t sz = read(fdr, buff, sizeof(buff) - 1);
         printf("%zd\n", sz);
