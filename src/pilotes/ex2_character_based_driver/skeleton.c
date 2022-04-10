@@ -1,9 +1,9 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
-#include <linux/fs.h>        /* this is the file structure, file open read close */
-#include <linux/cdev.h>      /* this is for character device, makes cdev avilable*/
-#include <linux/semaphore.h> /* this is for the semaphore*/
-#include <linux/uaccess.h>   /* this is for copy_user vice vers*/
+#include <linux/fs.h>        //this is the file structure, file open read close 
+#include <linux/cdev.h>      //this is for character device, makes cdev avilable
+#include <linux/semaphore.h> //this is for the semaphore
+#include <linux/uaccess.h>   //this is for copy_user vice vers
 
 int skeleton_init(void);
 void skeleton_exit(void);
@@ -11,22 +11,20 @@ void skeleton_exit(void);
 #define BUFFER_SIZE 1024
 static char device_buffer[BUFFER_SIZE];
 struct semaphore sem;
-struct cdev *mcdev; /* this is the name of my char driver that i will be registering*/
-dev_t dev_num;      /* will hold the major number that the kernel gives*/
+struct cdev *mcdev; //this is the name of my char driver that i will be registering
+dev_t dev_num;      //will hold the major number that the kernel gives
 
 #define DEVICENAME "skeleton"
 
-/* inode reffers to the actual file on disk*/
+// inode reffers to the actual file on disk
 static int skeleton_open(struct inode *inode, struct file *file)
 {
-    // semaphore to know if the device is already opened
+    // test semaphore to know if the device is already opened
     if (down_interruptible(&sem) != 0)
     {
-        pr_info("skeleton : the device has been opened by some \
-                                        other device, unable to open lock\n");
+        pr_info("skeleton : the device has been opened by some other device, unable to open lock\n");
         return -1;
     }
-    // buff_rptr = buff_wptr = device_buffer;
     pr_info("skeleton : device opened succesfully\n");
     return 0;
 }
@@ -75,18 +73,18 @@ static ssize_t skeleton_write(struct file *fp, const char *buffer, size_t length
 }
 
 struct file_operations fops = {
-    /* these are the file operations provided by our driver */
-    .owner = THIS_MODULE,      /* prevents unloading when operations are in use*/
-    .open = skeleton_open,     /* to open the device*/
-    .write = skeleton_write,   /* to write to the device*/
-    .read = skeleton_read,     /* to read the device*/
-    .release = skeleton_close, /* to close the device*/
+    //these are the file operations provided by our driver 
+    .owner = THIS_MODULE,      //prevents unloading when operations are in use
+    .open = skeleton_open,     //to open the device
+    .write = skeleton_write,   //to write to the device
+    .read = skeleton_read,     //to read the device
+    .release = skeleton_close, //to close the device
 };
 
 int skeleton_init(void)
 {
     int ret;
-    /* we will get the major number dynamically this is recommended please read ldd3*/
+    //we will get the major number dynamically this is recommended please read ldd3
     ret = alloc_chrdev_region(&dev_num, 0, 1, DEVICENAME);
     if (ret < 0)
     {
@@ -95,12 +93,9 @@ int skeleton_init(void)
     }
     else
         pr_info(" skeleton : major number allocated succesful\n");
-    mcdev = cdev_alloc(); /* create, allocate and initialize our cdev structure*/
-    mcdev->ops = &fops;   /* fops stand for our file operations*/
+    mcdev = cdev_alloc(); //create, allocate and initialize our cdev structure
+    mcdev->ops = &fops;   //fops stand for our file operations
     mcdev->owner = THIS_MODULE;
-
-    /* we have created and initialized our cdev structure now we need to
-    add it to the kernel*/
     ret = cdev_add(mcdev, dev_num, 1);
     if (ret < 0)
     {
@@ -109,14 +104,14 @@ int skeleton_init(void)
     }
     else
         pr_info("skeleton : device additin to the kernel succesful\n");
-    sema_init(&sem, 1); /* initial value to one*/
+    sema_init(&sem, 1); //initial value to one
 
     return 0;
 }
 
 void skeleton_exit(void)
 {
-    cdev_del(mcdev); /*removing the structure that we added previously*/
+    cdev_del(mcdev); 
     pr_info(" skeleton : removed the mcdev from kernel\n");
 
     unregister_chrdev_region(dev_num, 1);
