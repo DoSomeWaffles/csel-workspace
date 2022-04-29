@@ -10,8 +10,8 @@
 
 static int instances = 3;
 module_param(instances, int, 0);
-
-#define BUFFER_SZ 10000
+#define BUFFER_SIZE 1024
+static char device_buffer[BUFFER_SIZE];
 static char **buffers = 0;
 
 // inode reffers to the actual file on disk
@@ -39,47 +39,40 @@ static int skeleton_release(struct inode *inode, struct file *file)
     return 0;
 }
 
-static ssize_t skeleton_read(struct file *file, char __user *buf, size_t count, loff_t *off)
+static ssize_t skeleton_read(struct file *fp, char *buffer, size_t length, loff_t *offset)
 {
-    // compute remaining bytes to copy, update count and pointers
-    ssize_t remaining = BUFFER_SZ - (ssize_t)(*off);
-    char *ptr = (char *)file->private_data + *off;
-    if (count > remaining)
-        count = remaining;
-    *off += count;
+    int maxbytes;      // maximum bytes that can be read from offset to BUFFER_SIZE
+    int bytes_to_read; // gives the number of bytes to read
+    int bytes_read;    // number of bytes to read
+    maxbytes = BUFFER_SIZE - *offset;
+    if (maxbytes > length)
+        bytes_to_read = length;
+    else
+        bytes_to_read = maxbytes;
 
-    // copy required number of bytes
-    if (copy_to_user(buf, ptr, count) != 0)
-        count = -EFAULT;
+    bytes_read = bytes_to_read - copy_to_user(buffer, device_buffer + *offset, bytes_to_read);
+    pr_info("skeleton : read operation... read=%d\n", bytes_read);
 
-    pr_info("skeleton: read operation... read=%ld\n", count);
+    *offset += bytes_read;
 
-    return count;
+    return bytes_read;
 }
 
-static ssize_t skeleton_write(struct file *file, const char __user *buf, size_t count, loff_t *off)
+static ssize_t skeleton_write(struct file *fp, const char *buffer, size_t length, loff_t *offset)
 {
-    // compute remaining space in buffer and update pointers
-    ssize_t remaining = BUFFER_SZ - (ssize_t)(*off);
+    int maxbytes;       // maximum bytes that can be read from offset to BUFFER_SIZE
+    int bytes_to_write; // gives the number of bytes to write
+    int bytes_writen;   // number of bytes to write
+    maxbytes = BUFFER_SIZE - *offset;
+    if (maxbytes > length)
+        bytes_to_write = length;
+    else
+        bytes_to_write = maxbytes;
 
-    pr_info("skeleton: at%ld\n", (unsigned long)(*off));
-
-    // check if still remaining space to store additional bytes
-    if (count >= remaining)
-        count = -EIO;
-
-    // store additional bytes into internal buffer
-    if (count > 0)
-    {
-        char *ptr = file->private_data + *off;
-        *off += count;
-        ptr[count] = 0; // make sure string is null terminated
-        if (copy_from_user(ptr, buf, count))
-            count = -EFAULT;
-    }
-
-    pr_info("skeleton: write operation... private_data=%p, written=%ld\n", file->private_data, count);
-    return count;
+    bytes_writen = bytes_to_write - copy_from_user(device_buffer + *offset, buffer, bytes_to_write);
+    pr_info("skeleton : device has been written %d\n", bytes_writen);
+    *offset += bytes_writen;
+    return bytes_writen;
 }
 
 static struct file_operations skeleton_fops = {
@@ -116,7 +109,7 @@ static int __init skeleton_init(void)
 
         for (inode = 0; inode < instances; inode++)
         {
-            buffers[inode] = kzalloc(BUFFER_SZ, GFP_KERNEL);
+            buffers[inode] = kzalloc(BUFFER_SIZE, GFP_KERNEL);
         }
     }
 
@@ -140,6 +133,6 @@ static void __exit skeleton_exit(void)
 module_init(skeleton_init);
 module_exit(skeleton_exit);
 
-MODULE_AUTHOR("Daniel Gachet <daniel.gachet@hefr.ch> modified by Denis Rosset <denis.rosset@hes-so.ch> and Simon Corboz <simon.corboz@hes-so.ch>");
-MODULE_DESCRIPTION("Module skeleton");
+MODULE_AUTHOR("Denis Rosset <denis.rosset@hes-so.ch> and Simon Corboz <simon.corboz@hes-so.ch>");
+MODULE_DESCRIPTION("Module skeleton driver with multiple instances for character based devices");
 MODULE_LICENSE("GPL");
