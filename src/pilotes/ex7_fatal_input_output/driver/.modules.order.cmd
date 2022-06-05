@@ -1,0 +1,1 @@
+cmd_/workspace/src/pilotes/ex7_fatal_input_output/driver/modules.order := {   echo /workspace/src/pilotes/ex7_fatal_input_output/driver/mymodule.ko; :; } | awk '!x[$$0]++' - > /workspace/src/pilotes/ex7_fatal_input_output/driver/modules.order

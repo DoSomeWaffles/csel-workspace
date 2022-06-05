@@ -102,11 +102,11 @@ static struct cdev skeleton_cdev;
 
 static int __init skeleton_init(void)
 {
-    int i;
+    int i,status;
     if (instances <= 0)
         return -EFAULT;
     // dynamic allocation of character device region
-    int status = alloc_chrdev_region(&skeleton_dev, 0, instances, "mymodule");
+    status = alloc_chrdev_region(&skeleton_dev, 0, instances, "mymodule");
 
     if (status == 0)
     {
@@ -119,9 +119,13 @@ static int __init skeleton_init(void)
         {
             buffers[i] = kzalloc(BUFFER_SZ, GFP_KERNEL);
         }
-    } 
+    }
+    else
+    {
+        pr_info("skeleton: error %d\n", status);
+    }
 
-    pr_info("Linux module skeleton loaded\n");
+    pr_info("Linux module skeleton loaded with multiples instances\n");
     pr_info("The number of instances: %d\n", instances);
     return 0;
 }
@@ -135,7 +139,7 @@ static void __exit skeleton_exit(void)
     for (i = 0; i < instances; i++)
         kfree(buffers[i]);
     kfree(buffers);
-    pr_info("Linux module skeleton unloaded\n");
+    pr_info("Linux module skeleton with multiple instances unloaded\n");
 }
 
 module_init(skeleton_init);
