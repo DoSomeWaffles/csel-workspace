@@ -14,10 +14,9 @@ int main (void)
         {
             for (j = 0; j < SIZE; j++)
             {
-                array[i][j]++;//fixed 
+                array[j][i]++;//fix here
             }
         }
     }
     return 0;
 }
-
