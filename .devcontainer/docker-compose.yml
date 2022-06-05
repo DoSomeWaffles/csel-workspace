@@ -29,11 +29,13 @@ services:
       -s "rootfs;/rootfs;no;no"
       -s "workspace;/workspace;no;no"
       -s "home;/root-home;no;no"
+      -g "unix extensions = yes"
+      -g "vfs objects = catia fruit"
     ports:
       - "139:139"
       - "1445:445"
     volumes:
-      - ..:/workspace:cached
+      - ..:/workspace
       - buildroot:/buildroot
       - rootfs:/rootfs
       - home:/root-home

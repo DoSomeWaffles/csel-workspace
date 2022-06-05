@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../src/02_modules/exercice01"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"moduleparam.h": "c",
+			"ranges": "c"
+		}
+	}
+}

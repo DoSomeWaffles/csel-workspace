@@ -6,8 +6,7 @@
                 "${workspaceFolder}/**",
                 "/buildroot/output/build/linux-5.15.21/include",
                 "/buildroot/output/build/linux-5.15.21/arch/arm64/include",
-                "/buildroot/output/build/linux-5.15.21/arch/arm64/include/generated",
-                "/buildroot/output/build/linux-5.15.21/**"
+                "/buildroot/output/build/linux-5.15.21/arch/arm64/include/generated"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",

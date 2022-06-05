@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../src/01_environment/fibonacci"
+		}
+	],
+	"settings": {}
+}
