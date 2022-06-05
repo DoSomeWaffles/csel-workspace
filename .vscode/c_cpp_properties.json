@@ -3,17 +3,13 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**",
-                "/buildroot/output/build/linux-5.15.21/include",
-                "/buildroot/output/build/linux-5.15.21/arch/arm64/include",
-                "/buildroot/output/build/linux-5.15.21/arch/arm64/include/generated",
-                "/buildroot/output/build/linux-5.15.21/**"
+                "${workspaceFolder}/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",
-            "cStandard": "c99",
+            "cStandard": "c17",
             "cppStandard": "c++14",
-            "intelliSenseMode": "linux-clang-arm64"
+            "intelliSenseMode": "linux-clang-x64"
         }
     ],
     "version": 4
