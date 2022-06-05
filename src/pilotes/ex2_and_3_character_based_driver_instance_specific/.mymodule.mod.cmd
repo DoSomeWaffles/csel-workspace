@@ -1,1 +1,0 @@
-cmd_/workspace/src/pilotes/ex2_and_3_character_based_driver_instance_specific/mymodule.mod := { echo  /workspace/src/pilotes/ex2_and_3_character_based_driver_instance_specific/skeleton.o;  echo; } > /workspace/src/pilotes/ex2_and_3_character_based_driver_instance_specific/mymodule.mod

@@ -14,42 +14,36 @@ module_param(instances, int, 0);
 #define BUFFER_SZ 10000
 static char **buffers = 0;
 
-static int skeleton_open(struct inode *i, struct file *f)
+// inode reffers to the actual file on disk
+static int skeleton_open(struct inode *inode, struct file *file)
 {
     // we find major and minor in the inode of the device
-    pr_info("skeleton : open operation... major:%d, minor:%d\n", imajor(i), iminor(i));
+    pr_info("skeleton : opening inode... major:%d, minor:%d\n", imajor(inode), iminor(inode));
     // test if minor is a valid device number
-    if (iminor(i) >= instances)
+    if (iminor(inode) >= instances)
+    {
+        pr_info("skeleton : invalid minor number\n");
         return -EFAULT;
-
-    // the flag define the device access mode
-    if ((f->f_flags & (O_APPEND)) != 0)
-        pr_info("skeleton : opened for appending...\n");
-
-    if ((f->f_mode & (FMODE_READ | FMODE_WRITE)) != 0)
-        pr_info("skeleton : opened for reading & writing...\n");
-    else if ((f->f_mode & FMODE_READ) != 0)
-        pr_info("skeleton : opened for reading...\n");
-    else if ((f->f_mode & FMODE_WRITE) != 0)
-        pr_info("skeleton : opened for writing...\n");
+    }
 
     // associate the buffer to the device to get the private data
-    f->private_data = buffers[iminor(i)];
-    pr_info("skeleton: private_data=%p\n", f->private_data);
+    file->private_data = buffers[iminor(inode)];
+    pr_info("skeleton : device opened succesfully\n");
     return 0;
 }
 
-static int skeleton_release(struct inode *i, struct file *f)
+
+static int skeleton_release(struct inode *inode, struct file *file)
 {
     pr_info("skeleton: release operation...\n");
     return 0;
 }
 
-static ssize_t skeleton_read(struct file *f, char __user *buf, size_t count, loff_t *off)
+static ssize_t skeleton_read(struct file *file, char __user *buf, size_t count, loff_t *off)
 {
     // compute remaining bytes to copy, update count and pointers
     ssize_t remaining = BUFFER_SZ - (ssize_t)(*off);
-    char *ptr = (char *)f->private_data + *off;
+    char *ptr = (char *)file->private_data + *off;
     if (count > remaining)
         count = remaining;
     *off += count;
@@ -63,7 +57,7 @@ static ssize_t skeleton_read(struct file *f, char __user *buf, size_t count, lof
     return count;
 }
 
-static ssize_t skeleton_write(struct file *f, const char __user *buf, size_t count, loff_t *off)
+static ssize_t skeleton_write(struct file *file, const char __user *buf, size_t count, loff_t *off)
 {
     // compute remaining space in buffer and update pointers
     ssize_t remaining = BUFFER_SZ - (ssize_t)(*off);
@@ -77,24 +71,24 @@ static ssize_t skeleton_write(struct file *f, const char __user *buf, size_t cou
     // store additional bytes into internal buffer
     if (count > 0)
     {
-        char *ptr = f->private_data + *off;
+        char *ptr = file->private_data + *off;
         *off += count;
         ptr[count] = 0; // make sure string is null terminated
         if (copy_from_user(ptr, buf, count))
             count = -EFAULT;
     }
 
-    pr_info("skeleton: write operation... private_data=%p, written=%ld\n", f->private_data, count);
+    pr_info("skeleton: write operation... private_data=%p, written=%ld\n", file->private_data, count);
     return count;
 }
 
-// this method maps the commands to the corresponding methods
 static struct file_operations skeleton_fops = {
-    .owner = THIS_MODULE,
-    .open = skeleton_open,
-    .read = skeleton_read,
-    .write = skeleton_write,
-    .release = skeleton_release,
+ /* these are the file operations provided by our driver */
+    .owner = THIS_MODULE,      /* prevents unloading when operations are in use*/
+    .open = skeleton_open,     /* to open the device*/
+    .write = skeleton_write,   /* to write to the device*/
+    .read = skeleton_read,     /* to read the device*/
+    .release = skeleton_release, /* to close the device*/
 };
 
 static dev_t skeleton_dev;
@@ -102,27 +96,28 @@ static struct cdev skeleton_cdev;
 
 static int __init skeleton_init(void)
 {
-    int i,status;
+    int inode, status;
     if (instances <= 0)
         return -EFAULT;
     // dynamic allocation of character device region
     status = alloc_chrdev_region(&skeleton_dev, 0, instances, "mymodule");
 
-    if (status == 0)
+    if (status < 0)
+    {
+
+        pr_info("skeleton: error %d\n", status);
+    }
+    else
     {
         cdev_init(&skeleton_cdev, &skeleton_fops);
         skeleton_cdev.owner = THIS_MODULE;
         status = cdev_add(&skeleton_cdev, skeleton_dev, instances);
         buffers = kzalloc(sizeof(char *) * instances, GFP_KERNEL);
 
-        for (i = 0; i < instances; i++)
+        for (inode = 0; inode < instances; inode++)
         {
-            buffers[i] = kzalloc(BUFFER_SZ, GFP_KERNEL);
+            buffers[inode] = kzalloc(BUFFER_SZ, GFP_KERNEL);
         }
-    }
-    else
-    {
-        pr_info("skeleton: error %d\n", status);
     }
 
     pr_info("Linux module skeleton loaded with multiples instances\n");
@@ -132,12 +127,12 @@ static int __init skeleton_init(void)
 
 static void __exit skeleton_exit(void)
 {
-    int i;
+    int inode;
     cdev_del(&skeleton_cdev);
     unregister_chrdev_region(skeleton_dev, 1);
 
-    for (i = 0; i < instances; i++)
-        kfree(buffers[i]);
+    for (inode = 0; inode < instances; inode++)
+        kfree(buffers[inode]);
     kfree(buffers);
     pr_info("Linux module skeleton with multiple instances unloaded\n");
 }
