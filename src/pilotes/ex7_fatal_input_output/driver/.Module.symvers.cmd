@@ -1,0 +1,1 @@
+cmd_/workspace/src/pilotes/ex7_fatal_input_output/driver/Module.symvers := sed 's/\.ko$$/\.o/' /workspace/src/pilotes/ex7_fatal_input_output/driver/modules.order | scripts/mod/modpost    -o /workspace/src/pilotes/ex7_fatal_input_output/driver/Module.symvers -e -i Module.symvers   -T -
