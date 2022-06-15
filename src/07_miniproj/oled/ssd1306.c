@@ -13,7 +13,7 @@
 // this code is mainly based on Bakebit software: https://github.com/friendlyarm/BakeBit
 
 #define ARRAY_OF(x) (sizeof(x)/sizeof(x[0]))
-
+// /dev/i2c-0 is a char device
 #define I2C_BUS                 "/dev/i2c-0"
 #define OLED_ADDR               0x3c	
 #define OLED_COMMAND_MODE       0x00
@@ -150,6 +150,7 @@ static const uint8_t init_commands[] = {
 
 };
 
+//global file descriptor
 static int fd;
 
 static void send_command(uint8_t cmd)
@@ -158,6 +159,7 @@ static void send_command(uint8_t cmd)
         [0] = OLED_COMMAND_MODE,
         [1] = cmd,
     };
+    //pwrite() set pointer to 0 after write?
     if (write(fd, buf, sizeof(buf)) != sizeof(buf)) {
         printf ("error while sending command\n");
     }
@@ -202,8 +204,10 @@ void ssd1306_puts(const char* str)
 void ssd1306_clear_display()
 {
 	send_command(OLED_DISPLAY_OFF_CMD);//   display off
+    //for all 8 rows do 
 	for (int j=0; j<8; j++) {
 		ssd1306_set_position(0,j); 
+        //for all 16 column do clear
 		for (int i=0; i<16; i++)  //clear all columns
 			ssd1306_putc(' ');
     }
@@ -213,6 +217,7 @@ void ssd1306_clear_display()
 
 int ssd1306_init()
 {
+    //global fd is is set here
 	fd = open(I2C_BUS, O_RDWR);
 	if (fd < 0) {
 		printf("ERROR: unable to open i2c bus interface (%s)\n", I2C_BUS);

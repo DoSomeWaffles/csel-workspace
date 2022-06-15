@@ -10,7 +10,6 @@
 
 
 irqreturn_t k1_interrupt(int irq,void *dev_id){
-
 	pr_info ("K1 PUSHED");
 	return IRQ_HANDLED;		
 }
