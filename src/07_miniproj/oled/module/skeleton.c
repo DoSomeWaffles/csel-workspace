@@ -9,14 +9,14 @@
 
 //BEGIN MACRO
 #define GPIO_LED 10
-#define GET_JIFFIE_FROM_FREQ
 
 //END MACRO
 
 //BEGIN ATTRIBUTES DECLARATION
 //frequency in nanoseconds
 static struct timer_list my_timer;
-
+//simple lookup table 
+//enable us to bypass ms_to_hz and hz_to_ms calls in automatic mode
 static int[][] FREQS_MS_HZ = {{500000,2},
 							{200000,5},
 							{100000,10},
@@ -30,6 +30,7 @@ static struct device* sysfs_device;
 static struct thermal_zone_device* thermal_zone_dev;
 static int current_temperature;
 static int led_status;
+static unsigned int curr_freq;
 //END ATTRIBUTES DECLARATION
 
 
@@ -71,15 +72,19 @@ int get_temp(){
 	int status = thermal_zone_get_temp(thermal_zone_dev,&current_temperature);
 	return status;
 }
-int freq_from_temp(int temp){
-	temp /=1000;
-	if(temp<LOWER_LIMIT)return freqs[0][0];
-	if(temp<40)return freqs[1][0];
-	if(temp<45)return freqs[2][0];
-	if(tmp>UPPER_LIMIT)return freqs[3][0];
+int freq_index_from_temp(int temp){
+	if(temp<LOWER_LIMIT)return 0;
+	if(temp<40)return 1;
+	if(temp<45)return 2;
+	if(tmp>UPPER_LIMIT)return 3;
 }
 int hz_to_ms(int hz){
+	double f = 1.0/(double)hz;
+	return (int)(f * 1000);
 
+}
+int ms_to_hz(int ms){
+	
 }
 int led_init(){
 	int status;
@@ -95,12 +100,35 @@ int led_toggle(){
  	err_status=gpio_set_value(GPIO_LED,led_status);
 	return err_status;
 }
-
+//SRP 
+//this kernel module should ONLY modify timer frequency if needed
+//this kernel has no responsability to check if the frequency in MS is right
+//the data sanitaziong task is up to the daemon, not the kernel module 
 void timer_callback(struct timer_list *timer){
+	int status;
 	//timer callback;
 	//test if mode is auto or manual
 	led_toggle();
-	
+	if(mode<0){//auto
+		int freq_index = freq_index_from_temp(get_temp());
+		int freq = FREQ_MS_HZ[freq_index][0];
+		//only update the frequency attribute IF NEEDED
+		if(curr_freq!=freq){
+			curr_freq = freq;
+			//modify device attribute to make it readable by daemon
+			frequency = FREQ_MS_HZ[freq_index][1];
+			status = mod_timer(&my_timer,jiffies+msecs_to_jiffies(curr_freq);
+			if(status!=0){
+				//debug print
+			}
+		}
+	}else{//
+		int freq = hz_to_ms(frequency);
+		if(freq!=curr_freq){//only update if needed
+			curr_freq = freq;
+			status = mod_timer(&my_timer,jiffies+msecs_to_jiffies(curr_freq);
+		}
+	}
 }
 
 static int __init skeleton_init(void)
@@ -111,7 +139,6 @@ static int __init skeleton_init(void)
 	led_status  = 0;
 	 //---TEMP INIT BEGIN---
 	thermal_zone_dev =  thermal_zone_get_zone_by_name("cpu-thermal");
-	if(thermal_zone_dev != NULL)status = thermal_zone_get_temp(thermal_zone_dev,&current_temperature);
 	//---TEMP INIT END---
 	
 	//---LED INIT BEGIN ---
@@ -120,7 +147,11 @@ static int __init skeleton_init(void)
 	
 	//---TIMER INIT BEGIN---
 	setup_timer(&my_timer,timer_callback,CLOCK_MONOTONIC);
-	status = mod_timer(&my_timer,jiffies+msecs_to_jiffies(freq_from_temp(current_temperature)));
+	if(thermal_zone_dev != NULL)status = thermal_zone_get_temp(thermal_zone_dev,&current_temperature);
+	freq_index = freq_index_from_temp(current_temperature);
+	curr_freq = FREQ_MS_HZ[freq_index][0];
+	frequency = FREQ_MS_HZ[freq_index][1];
+	status = mod_timer(&my_timer,jiffies+msecs_to_jiffies(curr_freq);
 	//get initial freq from temp so as to have an adequate fan frequency on startup
 	//---TIMER INIT END---
 
@@ -128,13 +159,14 @@ static int __init skeleton_init(void)
     sysfs_device = device_create(sysfs_class, NULL, skeleton_dev, NULL, "fan_controller_device");
     if (status == 0) status = device_create_file(sysfs_device, &dev_attr_mode);
  	if (status == 0) status = device_create_file(sysfs_device, &dev_attr_frequency);
+	return 0;
 }
 
 static void __exit skeleton_exit(void)
 {
 	pr_info("Linux module skeleton unloaded\n");
-	gpio_free(GPIO_LED);
 	del_timer(&my_timer);
+	gpio_free(GPIO_LED);
 	pr_info ("Linux module skeleton unloaded\n");
 }
 module_init(skeleton_init);
