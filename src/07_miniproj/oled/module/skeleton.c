@@ -1,20 +1,37 @@
-// skeleton.c
+//BEGIN INCLUDE
 #include <linux/module.h> // needed by all modules
 #include <linux/init.h>	  // needed for macros
 #include <linux/kernel.h> // needed for debugging
 #include <linux/thermal.h> 
 #include <linux/timer.h>
+#include <linux/gpio.h>
+//END INCLUDE
 
+//BEGIN MACRO
+#define GPIO_LED 10
+#define GET_JIFFIE_FROM_FREQ
+
+//END MACRO
+
+//BEGIN ATTRIBUTES DECLARATION
 //frequency in nanoseconds
-static int[] freqs = {500000000,200000000,100000000,50000000};
-static int mode; //1 is manual , 0 is automatic
-static int frequency;
-static const int LOWER_LIMIT = 35;
-static const int UPPER_LIMIT= 45;
+static struct timer_list my_timer;
+
+static int[][] FREQS_MS_HZ = {{500000,2},
+							{200000,5},
+							{100000,10},
+							{50000,20}};
+static unsigned int mode; //>0 is manual , <1 is automatic
+static unsigned int frequency;
+static const unsigned int LOWER_LIMIT = 35;
+static const unsigned int UPPER_LIMIT= 45;
 static struct class* sysfs_class;
 static struct device* sysfs_device;
 static struct thermal_zone_device* thermal_zone_dev;
 static int current_temperature;
+static int led_status;
+//END ATTRIBUTES DECLARATION
+
 
 ssize_t sysfs_show_frequency(struct device* dev,
                        struct device_attribute* attr,
@@ -50,80 +67,74 @@ ssize_t sysfs_store_mode(struct device* dev,
 }
 DEVICE_ATTR(mode, 0664, sysfs_show_mode, sysfs_store_mode);
 
-
-//2 attributes, mode and frequency
+int get_temp(){
+	int status = thermal_zone_get_temp(thermal_zone_dev,&current_temperature);
+	return status;
+}
 int freq_from_temp(int temp){
-	if(temp<LOWER_LIMIT)return freqs[0];
-	if(temp<40)return freqs[1];
-	if(temp<45)return freqs[2];
-	if(tmp>UPPER_LIMIT)return freqs[3]
+	temp /=1000;
+	if(temp<LOWER_LIMIT)return freqs[0][0];
+	if(temp<40)return freqs[1][0];
+	if(temp<45)return freqs[2][0];
+	if(tmp>UPPER_LIMIT)return freqs[3][0];
+}
+int hz_to_ms(int hz){
+
+}
+int led_init(){
+	int status;
+	status = gpio_request(GPIO_LED,"LED");
+	if(status==0){
+		status = gpio_direction_output(GPIO_LED,0);
+	}
+	return status;
+}
+int led_toggle(){
+	int err_status;
+	led_status = 1-led_status;
+ 	err_status=gpio_set_value(GPIO_LED,led_status);
+	return err_status;
 }
 
-//--------------------IRQ--------------------
-irqreturn_t k1_interrupt(int irq,void *dev_id){
-	pr_info ("K1 PUSHED");
-	return IRQ_HANDLED;		
+void timer_callback(struct timer_list *timer){
+	//timer callback;
+	//test if mode is auto or manual
+	led_toggle();
+	
 }
-irqreturn_t k2_interrupt(int irq,void *dev_id){
-	pr_info ("K2 PUSHED");
-	return IRQ_HANDLED;		
-}
-irqreturn_t k3_interrupt(int irq,void *dev_id){
-	pr_info ("K3 PUSHED");
-	return IRQ_HANDLED;		
-}
-//--------------------IRQ--------------------
-unsigned int k1_irq;
-unsigned int k2_irq;
-unsigned int k3_irq;
 
 static int __init skeleton_init(void)
 {//char based driver
-	sysfs_class = class_create(THIS_MODULE, "led_controller_class");
-    sysfs_device = device_create(sysfs_class, NULL, skeleton_dev, NULL, "led_controller_device");
+	int status=0;
+	//init mode to automatic
+	mode=0;
+	led_status  = 0;
+	 //---TEMP INIT BEGIN---
+	thermal_zone_dev =  thermal_zone_get_zone_by_name("cpu-thermal");
+	if(thermal_zone_dev != NULL)status = thermal_zone_get_temp(thermal_zone_dev,&current_temperature);
+	//---TEMP INIT END---
+	
+	//---LED INIT BEGIN ---
+	if(status==0)status=led_init();
+	//---LED INIT END---
+	
+	//---TIMER INIT BEGIN---
+	setup_timer(&my_timer,timer_callback,CLOCK_MONOTONIC);
+	status = mod_timer(&my_timer,jiffies+msecs_to_jiffies(freq_from_temp(current_temperature)));
+	//get initial freq from temp so as to have an adequate fan frequency on startup
+	//---TIMER INIT END---
+
+	sysfs_class = class_create(THIS_MODULE, "fan_controller_class");
+    sysfs_device = device_create(sysfs_class, NULL, skeleton_dev, NULL, "fan_controller_device");
     if (status == 0) status = device_create_file(sysfs_device, &dev_attr_mode);
  	if (status == 0) status = device_create_file(sysfs_device, &dev_attr_frequency);
-	if (status == 0) thermal_zone_dev =  thermal_zone_get_zone_by_name("cpu-thermal");
-	int thermal_zone_get_temp(struct thermal_zone_device*, int* temp);
-
-	if(thermal_zone_dev != NULL) status = thermal_zone_get_temp(thermal_zone_dev,&current_temperature);
-	//set base freq
-	if(status==0){
-		//start timer
-
-		if(mode<1){
-			//if we are in automatic mode, immediately put the good frequency
-			
-		}else{
-			//set base freq
-
-		}
-		while(1){
-		// lire le mode
-		// AUTOMATIC MODE
-		// needs to check the cpu temp
-		// and update the frequency 
-		// accordingly
-			if(mode<1){
-				//get temp
-			}else{
-				//read the file 
-			}
-			//modify freq
-		}
-	}
-	
 }
 
 static void __exit skeleton_exit(void)
 {
 	pr_info("Linux module skeleton unloaded\n");
-	free_irq(k1_interrupt,NULL);
-	free_irq(k2_interrupt,NULL);
-	free_irq(k3_interrupt,NULL);
-	gpio_free(0);
-	gpio_free(2);
-	gpio_free(3);
+	gpio_free(GPIO_LED);
+	del_timer(&my_timer);
 	pr_info ("Linux module skeleton unloaded\n");
 }
 module_init(skeleton_init);
