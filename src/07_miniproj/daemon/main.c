@@ -203,7 +203,7 @@ int main(int argc, int argv){
     sigaction (SIGQUIT, &action, NULL);  
     sigaction (SIGABRT, &action, NULL);  
     sigaction (SIGTSTP, &action, NULL);  
-   // sigaction (SIGTERM, &action, NULL);  dont catch sigterm for killall
+    //sigaction (SIGTERM, &action, NULL);  dont catch sigterm for killall
     
     umask(0027);
 
