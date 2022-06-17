@@ -287,9 +287,13 @@ int main(int argc, int argv){
                 sscanf(buff,"%d",&mode);
                 char dummybuf[8];
                 if(mode<1){//auto toggle led ON
+                    epoll_ctl(epfd,EPOLL_CTL_DEL,k1_fd,&k1_event);
+                    epoll_ctl(epfd,EPOLL_CTL_DEL,k2_fd,&k2_event);
                     pwrite(led_fd,"1",sizeof("1"),0);
                     update_mode(AUTO_MODE);
                 }else{//manual toggle led OFF
+                    epoll_ctl(epfd,EPOLL_CTL_ADD,k1_fd,&k1_event);
+                    epoll_ctl(epfd,EPOLL_CTL_ADD,k2_fd,&k2_event);
                     pwrite(led_fd,"0",sizeof("0"),0);
                     update_mode(MANUAL_MODE);
                 }
