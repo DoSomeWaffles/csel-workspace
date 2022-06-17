@@ -1,16 +1,23 @@
+#define _XOPEN_SOURCE 600
+#define _DEFAULT_SOURCE
 #include "../oled/ssd1306.h"
-#include <stdio.h>
-#include <pwd.h>
+
+
 #include <fcntl.h>
+#include <grp.h>
+#include <pwd.h>
+#include <signal.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <syslog.h>
 #include <unistd.h>
-#include<grp.h>
-#include<signal.h>
-#include<stdint.h>
-#include<sys/types.h>
-#include<sys/stat.h>
-#include<stdlib.h>
 #include <sys/epoll.h>
+#include <sys/timerfd.h>
 #include <string.h>
+#include "ssd1306.h"
 
 #define TEMP_FORMAT "Temp: %3d'C"
 #define FREQ_FORMAT "Freq: %3dHz"
@@ -18,7 +25,7 @@
 #define BUFFER_SIZE 30
 #define AUTO_MODE 0
 #define MANUAL_MODE 1
-
+#define UNUSED(x) (void)(x)
 #define GPIO_EXPORT "/sys/class/gpio/export"
 #define GPIO_UNEXPORT "/sys/class/gpio/unexport"
 #define GPIO_LED "/sys/class/gpio/gpio362"
@@ -34,8 +41,13 @@
 #define FAN_DEVICE "/sys/class/fan_controller_class/fan_controller_device0"
 #define TEMP_ATTR "/sys/class/thermal/thermal_zone0/temp"
 
-#define PIN_NUMBER 3
-
+static int k1_fd;
+static int k2_fd;
+static int k3_fd;
+static int temp_fd;
+static int mode_fd;
+static int frequency_fd;
+static int signal_catched=0;
 static int open_led()
 {
     // unexport pin out of sysfs (reinitialization)
@@ -140,6 +152,7 @@ void update_mode(int mode)
             break;
     }
 }
+
 void init_oled()
 {
     ssd1306_init();
@@ -153,22 +166,62 @@ void init_oled()
     update_frequency(1);
     update_mode(AUTO_MODE);
 }
-
-int main(int argc, int argv){
-    
+//graceful shutdown handled here
+void catch_signal(int signal){
+    syslog(LOG_INFO, "signal=%d catched\n", signal);
+    signal_catched++;
+}  
+static void fork_process(){
     pid_t pid = fork();
-    if(pid == -1 ){
-        exit(1);
-    }else if(pid !=0){
+    switch(pid){
+        case 0:
+            break;
+        case -1:
+            syslog(LOG_ERR,"error while forking");
+            exit(1);
+            break;
+        default:
+            exit(0);//exit parent
+    }
+}
+int main(int argc, int argv){   
+    UNUSED(argc);
+    UNUSED(argv);
+    fork_process();
+    if(setsid() == - 1){
         exit(1);
     }
-    if(setsid() ==- 1){
+    fork_process();
+    
+    struct sigaction action = {.sa_handler = catch_signal,};
+    //clean exit action
+    sigaction (SIGHUP,  &action, NULL);  
+    sigaction (SIGINT,  &action, NULL);  
+    sigaction (SIGQUIT, &action, NULL);  
+    sigaction (SIGABRT, &action, NULL);  
+    sigaction (SIGTERM,&action, NULL);  
+    sigaction (SIGTSTP, &action, NULL);  
+    
+    umask(0027);
+
+    if(chdir("/") == -1){
+        syslog(LOG_ERR, "err while changing to working dir");
         exit(1);
     }
-    pid = fork();
-    if(pid == -1 ){
+    for(int fd =sysconf(_SC_OPEN_MAX);fd>=0;fd--){
+        close(fd);
+    }
+    //redirect stdin
+    if(open("dev/null",O_RDWR)!=STDIN_FILENO){
+        syslog(LOG_ERR,"error while opening /dev/null for stdin");
         exit(1);
-    }else if(pid !=0){
+    }
+    if(dup2(STDIN_FILENO,STDOUT_FILENO)!=STDOUT_FILENO){
+        syslog(LOG_ERR,"error while opening /dev/null for stdout");
+        exit(1);
+    }
+    if(dup2(STDIN_FILENO,STDERR_FILENO)!=STDERR_FILENO){
+        syslog(LOG_ERR,"error while opening /dev/null for stderr");
         exit(1);
     }
 
@@ -179,16 +232,16 @@ int main(int argc, int argv){
     int led_fd = open_led();
     int len;
 
-    int k1_fd = open(GPIO_K1 "/value", O_RDWR);
+    k1_fd = open(GPIO_K1 "/value", O_RDWR);
     len = pread(k1_fd,dummybuffirq,20,0);
-    int k2_fd = open(GPIO_K2 "/value", O_RDWR);
+    k2_fd = open(GPIO_K2 "/value", O_RDWR);
     len = pread(k2_fd,dummybuffirq,20,0);
-    int k3_fd = open(GPIO_K3 "/value", O_RDWR);
+    k3_fd = open(GPIO_K3 "/value", O_RDWR);
     len = pread(k3_fd,dummybuffirq,20,0);
     //must check fd consistency
-    int frequency_fd = open(FAN_DEVICE "/frequency",O_RDWR);
-    int mode_fd = open(FAN_DEVICE "/mode",O_RDWR);
-    int temp_fd = open(TEMP_ATTR,O_RDONLY);
+    frequency_fd = open(FAN_DEVICE "/frequency",O_RDWR);
+    mode_fd = open(FAN_DEVICE "/mode",O_RDWR);
+    temp_fd = open(TEMP_ATTR,O_RDONLY);
     int epfd = epoll_create1(0);
     
     if(epfd<0)return epfd;
@@ -269,12 +322,8 @@ int main(int argc, int argv){
                 pread(mode_fd,buff,20,0);   
                 sscanf(buff,"%d",&mode);
                 if(mode<1){//auto set to manual
-                    epoll_ctl(epfd,EPOLL_CTL_ADD,k1_fd,&k1_event);
-                    epoll_ctl(epfd,EPOLL_CTL_ADD,k2_fd,&k2_event);
                     pwrite(mode_fd,"1",sizeof("1"),0);
                 }else{//manual set to auto
-                    epoll_ctl(epfd,EPOLL_CTL_DEL,k1_fd,&k1_event);
-                    epoll_ctl(epfd,EPOLL_CTL_DEL,k2_fd,&k2_event);
                     pwrite(mode_fd,"0",sizeof("0"),0);
                 }   
                 
@@ -282,7 +331,7 @@ int main(int argc, int argv){
                 pread(frequency_fd,buff,20,0);   
                 sscanf(buff,"%d",&freq);
                 update_frequency(freq);
-            }else if(events[i].data.fd == mode_fd){//trigger pwr led toggl
+            }else if(events[i].data.fd == mode_fd){//trigger pwr led toggle
                 pread(mode_fd,buff,20,0);   
                 sscanf(buff,"%d",&mode);
                 char dummybuf[8];
