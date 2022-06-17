@@ -50,7 +50,7 @@ int freq_index_from_temp(int temp){
 	if(temp<LOWER_LIMIT)return 0;
 	if(temp<40)return 1;
 	if(temp<45)return 2;
-	if(temp>UPPER_LIMIT)return 3;
+	if(temp>=UPPER_LIMIT)return 3;
 	return -1;
 }
 unsigned int hz_to_ms(int hz){

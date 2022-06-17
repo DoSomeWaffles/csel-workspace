@@ -156,15 +156,23 @@ void init_oled()
 }
 
 int main(int argc, int argv){
-    //nerd stuff do it after
-    /**
+    
     pid_t pid = fork();
     if(pid == -1 ){
-        syslog(LOG_ERR,"Erreur pendant le fork");
         exit(1);
     }else if(pid !=0){
         exit(1);
-    }*/
+    }
+    if(setsid() ==- 1){
+        exit(1);
+    }
+    pid = fork();
+    if(pid == -1 ){
+        exit(1);
+    }else if(pid !=0){
+        exit(1);
+    }
+
     init_oled();
     char dummybuffirq[20];
     reset_gpios();
@@ -178,7 +186,7 @@ int main(int argc, int argv){
     len = pread(k2_fd,dummybuffirq,20,0);
     int k3_fd = open(GPIO_K3 "/value", O_RDWR);
     len = pread(k3_fd,dummybuffirq,20,0);
-
+    //must check fd consistency
     int frequency_fd = open(FAN_DEVICE "/frequency",O_RDWR);
     int mode_fd = open(FAN_DEVICE "/mode",O_RDWR);
     int temp_fd = open(TEMP_ATTR,O_RDONLY);
