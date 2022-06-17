@@ -68,7 +68,6 @@ void led_toggle(void){
 	led_status = 1-led_status;
  	gpio_set_value(GPIO_LED,led_status);
 }
-//SRP 
 //this kernel module should ONLY modify timer frequency if needed
 //this kernel has no responsability to check if the frequency in MS is right
 //the data sanitaziong task is up to the daemon, not the kernel module 
@@ -154,8 +153,8 @@ static int __init skeleton_init(void)
 	timer_setup(&my_timer,timer_callback,0);
 	if(thermal_zone_dev != NULL)status = thermal_zone_get_temp(thermal_zone_dev,&current_temperature);
 	freq_index = freq_index_from_temp(current_temperature);
-	curr_freq = FREQ_MS_HZ[0][0];
-	frequency = FREQ_MS_HZ[0][1];
+	curr_freq = FREQ_MS_HZ[freq_index][0];
+	frequency = FREQ_MS_HZ[freq_index][1];
 	status = mod_timer(&my_timer,jiffies+msecs_to_jiffies(curr_freq));
 	//get initial freq from temp so as to have an adequate fan frequency on startup
 	//---TIMER INIT END---

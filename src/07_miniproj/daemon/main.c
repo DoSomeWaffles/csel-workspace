@@ -151,7 +151,6 @@ void init_oled()
     ssd1306_puts("--------------");
     update_temperature(20);
     update_frequency(1);
-    update_duty(50);
     update_mode(AUTO_MODE);
 }
 
@@ -226,12 +225,13 @@ int main(int argc, int argv){
     sscanf(buff,"%d",&mode);
     if(mode>0){//manual
         epoll_ctl(epfd,EPOLL_CTL_ADD,k1_fd,&k1_event);
-        epoll_ctl(epfd,EPOLL_CTL_ADD,k3_fd,&k3_event);
+        epoll_ctl(epfd,EPOLL_CTL_ADD,k2_fd,&k2_event);
         update_mode(MANUAL_MODE);
     }else{
         update_mode(AUTO_MODE);
     }
-    epoll_ctl(epfd,EPOLL_CTL_ADD,k2_fd,&k2_event);
+    
+    epoll_ctl(epfd,EPOLL_CTL_ADD,k3_fd,&k3_event);
    
 
     epoll_ctl(epfd,EPOLL_CTL_ADD,frequency_fd,&frequency_event);
@@ -256,27 +256,27 @@ int main(int argc, int argv){
                 sprintf(buff,"%d",freq);
                 pwrite(frequency_fd,buff,sizeof(buff),0);
 
-            }else if(events[i].data.fd == k2_fd){//rst freq
+            }else if(events[i].data.fd == k2_fd){//rst freq //decr freq
                 len = pread(k2_fd,dummybuffirq,20,0);
-                pread(mode_fd,buff,20,0);   
-                sscanf(buff,"%d",&mode);
-                if(mode<1){//auto set to manual
-                    epoll_ctl(epfd,EPOLL_CTL_ADD,k1_fd,&k1_event);
-                    epoll_ctl(epfd,EPOLL_CTL_ADD,k3_fd,&k3_event);
-                    pwrite(mode_fd,"1",sizeof("1"),0);
-                }else{//manual set to auto
-                    epoll_ctl(epfd,EPOLL_CTL_DEL,k1_fd,&k1_event);
-                    epoll_ctl(epfd,EPOLL_CTL_DEL,k3_fd,&k3_event);
-                    pwrite(mode_fd,"0",sizeof("0"),0);
-                }   
-            }else if(events[i].data.fd == k3_fd){//decr freq
-                len = pread(k3_fd,dummybuffirq,20,0);
                 pread(frequency_fd,buff,20,0);
                 sscanf(buff,"%d",&freq);
                 freq--;
                 if(freq<1)freq=1;//sanitize frequency
                 sprintf(buff,"%d",freq);
                 pwrite(frequency_fd,buff,sizeof(buff),0);
+            }else if(events[i].data.fd == k3_fd){//decr freq //rst freq 
+                len = pread(k3_fd,dummybuffirq,20,0);
+                pread(mode_fd,buff,20,0);   
+                sscanf(buff,"%d",&mode);
+                if(mode<1){//auto set to manual
+                    epoll_ctl(epfd,EPOLL_CTL_ADD,k1_fd,&k1_event);
+                    epoll_ctl(epfd,EPOLL_CTL_ADD,k2_fd,&k2_event);
+                    pwrite(mode_fd,"1",sizeof("1"),0);
+                }else{//manual set to auto
+                    epoll_ctl(epfd,EPOLL_CTL_DEL,k1_fd,&k1_event);
+                    epoll_ctl(epfd,EPOLL_CTL_DEL,k2_fd,&k2_event);
+                    pwrite(mode_fd,"0",sizeof("0"),0);
+                }   
                 
             }else if(events[i].data.fd == frequency_fd){//trigger view update
                 pread(frequency_fd,buff,20,0);   
