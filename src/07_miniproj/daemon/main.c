@@ -143,7 +143,7 @@ void update_mode(int mode)
     ssd1306_set_position(0, 6);
     switch (mode){
         case AUTO_MODE:
-            ssd1306_puts("Mode auto");
+            ssd1306_puts("Mode auto  ");
             break;
         case MANUAL_MODE:
             ssd1306_puts("Mode manual");
@@ -166,11 +166,13 @@ void init_oled()
     update_frequency(1);
     update_mode(AUTO_MODE);
 }
-//graceful shutdown handled here
 void catch_signal(int signal){
     syslog(LOG_INFO, "signal=%d catched\n", signal);
     signal_catched++;
 }  
+//graceful shutdown handled here
+
+
 static void fork_process(){
     pid_t pid = fork();
     switch(pid){
@@ -181,7 +183,7 @@ static void fork_process(){
             exit(1);
             break;
         default:
-            exit(0);//exit parent
+            exit(0);
     }
 }
 int main(int argc, int argv){   
@@ -194,13 +196,14 @@ int main(int argc, int argv){
     fork_process();
     
     struct sigaction action = {.sa_handler = catch_signal,};
+     
     //clean exit action
     sigaction (SIGHUP,  &action, NULL);  
     sigaction (SIGINT,  &action, NULL);  
     sigaction (SIGQUIT, &action, NULL);  
     sigaction (SIGABRT, &action, NULL);  
-    sigaction (SIGTERM,&action, NULL);  
     sigaction (SIGTSTP, &action, NULL);  
+   // sigaction (SIGTERM, &action, NULL);  dont catch sigterm for killall
     
     umask(0027);
 
