@@ -241,7 +241,7 @@ int main(int argc, int argv){
     struct epoll_event events[6];
     
     while(1){
-        int evt_numbers = epoll_wait(epfd,events,3,-1);
+        int evt_numbers = epoll_wait(epfd,events,6,-1);
 
         if(evt_numbers<0)return -1;
         for(int i = 0;i<evt_numbers;i++){
